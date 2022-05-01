@@ -1,0 +1,22 @@
+services:
+  database:
+    image: postgres:14.2-alpine
+    networks:
+      - banking-core
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: bankcore
+      POSTGRES_PASSWORD: bankcore
+      POSTGRES_DB: bankcore
+
+  rabbitmq:
+    image: rabbitmq:3.9.16-alpine
+    networks:
+      - banking-core
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+networks:
+  banking-core:
