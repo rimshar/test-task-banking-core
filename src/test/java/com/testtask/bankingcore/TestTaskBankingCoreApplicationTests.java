@@ -1,4 +1,4 @@
-package com.example.testtaskbankingcore;
+package com.testtask.bankingcore;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

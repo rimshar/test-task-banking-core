@@ -1,4 +1,4 @@
-package com.example.testtaskbankingcore;
+package com.testtask.bankingcore;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

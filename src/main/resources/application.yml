@@ -1,0 +1,21 @@
+db:
+  host: localhost
+  port: 5432
+  name: bankcore
+  user: bankcore
+  password: bankcore
+
+spring:
+  application:
+    name: banking-core
+  datasource:
+    username: ${db.user}
+    password: ${db.password}
+    type: com.zaxxer.hikari.HikariDataSource
+    url: jdbc:postgresql://${db.host}:${db.port}/${db.name}?useUnicode=yes&characterEncoding=UTF-8&prepareThreshold=0
+    driver-class-name: org.postgresql.Driver
+  hikari:
+    minimum-idle: 2
+    maximum-pool-size: 10
+    data-source-properties:
+      socketTimeout: 60
