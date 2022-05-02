@@ -29,11 +29,11 @@ public class TransactionControllerTest {
     private final CustomerService customerService;
 
     @Test
-    void happy_path_transaction_saved() {
+    void happy_path_transactions_saved() {
         val customerId = createTestCustomer();
         val accountId = createAccount(customerId);
 
-        String expected = """
+        String expectedBefore = """
             {
                 accountId: %s,
                 amount: 100.50,
@@ -53,7 +53,29 @@ public class TransactionControllerTest {
             .statusCode(isOk())
             .contentType(ContentType.JSON)
             .body("transactionId", notNullValue())
-            .body(isJsonEqualTo(expected));
+            .body(isJsonEqualTo(expectedBefore));
+
+        String expectedAfter = """
+            {
+                accountId: %s,
+                amount: 40.25,
+                currency: EUR,
+                direction: out,
+                description: Test transaction,
+                updatedBalance: 60.25
+            }
+            """.formatted(accountId);
+
+        createTransaction(
+            getTransactionRequest(
+                accountId, BigDecimal.valueOf(40.2500), "EUR", "OUT", "Test transaction"
+            ))
+            .then()
+            .assertThat()
+            .statusCode(isOk())
+            .contentType(ContentType.JSON)
+            .body("transactionId", notNullValue())
+            .body(isJsonEqualTo(expectedAfter));
     }
 
     @Test
@@ -109,9 +131,7 @@ public class TransactionControllerTest {
     }
 
     @Test
-    void invalid_direction_and_description() {
-        val customerId = createTestCustomer();
-        val accountId = createAccount(customerId);
+    void invalid_fields() {
 
         String expected = """
             {
@@ -119,14 +139,15 @@ public class TransactionControllerTest {
                 details: [
                     Description must be between 3 and 140 characters,
                     Transaction direction must be IN or OUT,
-                    Invalid amount
+                    Invalid amount,
+                    AccountID must not be empty
                 ]
             }
             """;
 
         createTransaction(
             getTransactionRequest(
-                accountId, BigDecimal.valueOf(-100.5000), "EUR", "InvalidDirection", "iv"
+                null, BigDecimal.valueOf(-100.50), "EUR", "InvalidDirection", "iv"
             ))
             .then()
             .assertThat()
