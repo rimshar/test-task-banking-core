@@ -21,6 +21,10 @@ public final class StatusMatcher extends BaseMatcher<Integer> {
         return new StatusMatcher(HttpStatus.BAD_REQUEST.value());
     }
 
+    public static StatusMatcher notFound() {
+        return new StatusMatcher(HttpStatus.NOT_FOUND.value());
+    }
+
     @Override
     public boolean matches(Object actual) {
         return expected == (Integer) actual;

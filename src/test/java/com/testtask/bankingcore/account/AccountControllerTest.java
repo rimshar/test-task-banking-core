@@ -98,7 +98,7 @@ class AccountControllerTest {
     void invalid_request() {
         String expected = """
             {
-                message: Validation Failed,
+                message: Bad Request,
                 details: [
                     CustomerId must not be empty,
                     Country must not be empty

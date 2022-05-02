@@ -45,7 +45,7 @@ public class BalanceService {
 
         if (direction == TransactionDirection.OUT) {
             val updatedAmount = balance.getAmount().subtract(amount);
-            if (updatedAmount.compareTo(BigDecimal.ZERO) > 0) {
+            if (updatedAmount.compareTo(BigDecimal.ZERO) < 0) {
                 throw new InsufficientFundsException();
             }
             balance.setAmount(updatedAmount);

@@ -26,7 +26,7 @@ public class CustomExceptionHandler extends ResponseEntityExceptionHandler
         for(ObjectError error : ex.getBindingResult().getAllErrors()) {
             details.add(error.getDefaultMessage());
         }
-        val error = new ErrorResponse("Validation Failed", details);
+        val error = new ErrorResponse("Bad Request", details);
         return new ResponseEntity(error, HttpStatus.BAD_REQUEST);
     }
 }
