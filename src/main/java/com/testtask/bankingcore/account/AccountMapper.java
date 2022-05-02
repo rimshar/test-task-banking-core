@@ -1,13 +1,19 @@
 package com.testtask.bankingcore.account;
 
 import com.testtask.bankingcore.account.api.v1.AccountResponse;
-import org.apache.ibatis.annotations.*;
+import org.apache.ibatis.annotations.Insert;
+import org.apache.ibatis.annotations.Many;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Options;
+import org.apache.ibatis.annotations.Result;
+import org.apache.ibatis.annotations.Results;
+import org.apache.ibatis.annotations.Select;
 
 import java.util.List;
 import java.util.Optional;
 
 @Mapper
-public interface AccountMapper {
+interface AccountMapper {
 
     @Insert("INSERT INTO account(customer_id, country_code) " +
         "VALUES(#{customerId},#{countryCode})")

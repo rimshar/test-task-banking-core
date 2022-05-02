@@ -1,7 +1,13 @@
 package com.testtask.bankingcore.balance;
 
 import com.testtask.bankingcore.common.Money;
-import org.apache.ibatis.annotations.*;
+import org.apache.ibatis.annotations.Insert;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.One;
+import org.apache.ibatis.annotations.Options;
+import org.apache.ibatis.annotations.Result;
+import org.apache.ibatis.annotations.Results;
+import org.apache.ibatis.annotations.Select;
 
 import java.math.BigDecimal;
 import java.util.List;

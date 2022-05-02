@@ -93,6 +93,26 @@ class AccountControllerTest {
         assertThrows(AccountNotFoundException.class, () -> accountService.findByCustomerId(customerId));
     }
 
+    @Test
+    void invalid_request() {
+        String expected = """
+            {
+                message: Validation Failed,
+                details: [
+                    Country must not be empty,
+                    CustomerId must not be empty
+                ]
+            }
+            """;
+
+        saveAccount(createRequest(null, null, List.of("EUR", "JPY")))
+            .then()
+            .assertThat()
+            .statusCode(isBadRequest())
+            .contentType(ContentType.JSON)
+            .body(isJsonEqualTo(expected));
+    }
+
     private Response saveAccount(AccountCreationRequest request) {
         return RestAssured.given()
             .body(request)

@@ -3,7 +3,14 @@ package com.testtask.bankingcore.account.api.v1;
 import com.testtask.bankingcore.account.AccountService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import javax.validation.Valid;
 
 @RestController
 @RequiredArgsConstructor
@@ -13,7 +20,7 @@ public class AccountController {
     private final AccountService service;
 
     @PostMapping
-    AccountResponse createAccount(@RequestBody AccountCreationRequest request) {
+    AccountResponse createAccount(@Valid @RequestBody AccountCreationRequest request) {
         return service.createAccount(request);
     }
 
