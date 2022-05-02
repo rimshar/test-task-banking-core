@@ -1,11 +1,10 @@
 package com.testtask.bankingcore.balance.api.v1;
 
+import com.testtask.bankingcore.common.Money;
 import lombok.Builder;
-
-import java.math.BigDecimal;
 
 @Builder
 public record BalanceResponse(
-    BigDecimal availableAmount,
-    String currency
+    Money balance,
+    Long accountId
 ) {}

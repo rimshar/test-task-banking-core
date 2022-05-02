@@ -2,71 +2,51 @@ package com.testtask.bankingcore.account;
 
 import com.testtask.bankingcore.account.api.v1.AccountCreationRequest;
 import com.testtask.bankingcore.account.api.v1.AccountResponse;
-import com.testtask.bankingcore.balance.BalanceMapper;
-import com.testtask.bankingcore.balance.BalanceRecord;
+import com.testtask.bankingcore.account.exception.AccountNotFoundException;
+import com.testtask.bankingcore.balance.BalanceService;
 import com.testtask.bankingcore.balance.api.v1.BalanceResponse;
-import com.testtask.bankingcore.currency.CurrencyMapper;
-import com.testtask.bankingcore.currency.CurrencyRecord;
-import com.testtask.bankingcore.currency.exception.InvalidCurrencyException;
+import com.testtask.bankingcore.common.Money;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.List;
 
+@Slf4j
 @Service
 @Transactional
 @RequiredArgsConstructor
 public class AccountService {
 
     private final AccountMapper accountMapper;
-    private final BalanceMapper balanceMapper;
-    private final CurrencyMapper currencyMapper;
+    private final BalanceService balanceService;
 
     public AccountResponse createAccount(AccountCreationRequest request) {
-        val accountId = accountMapper.save(AccountRecord.fromCreationRequest(request)).id();
+        val account = AccountRecord.fromCreationRequest(request);
+        accountMapper.save(account);
 
-        val balances = saveBalances(accountId, getCurrencies(request));
+        val balances = request.currencies().stream().distinct()
+            .map(currency ->
+                balanceService.createBalance(
+                    Money.builder()
+                        .amount(BigDecimal.valueOf(0.00))
+                        .currency(currency)
+                        .build(),
+                    account.getId()
+                ))
+            .toList();
 
         return AccountResponse.builder()
-            .accountId(accountId)
+            .accountId(balances.get(0).accountId())
             .customerId(request.customerId())
-            .balances(balances)
+            .balances(balances.stream().map(BalanceResponse::balance).toList())
             .build();
     }
 
-    private List<CurrencyRecord> getCurrencies(AccountCreationRequest request) {
-        return request.currencies().stream()
-            .map(currency -> {
-                    val currencyID = currencyMapper.findByCode(currency);
-
-                    if (currencyID.isEmpty()) {
-                        throw new InvalidCurrencyException(currency);
-                    }
-
-                    return currencyID.get();
-                }
-            ).toList();
-    }
-
-    private List<BalanceResponse> saveBalances(String accountId, List<CurrencyRecord> currencyIds) {
-        return currencyIds.stream()
-            .map(currency -> {
-                    balanceMapper.save(
-                        BalanceRecord.builder()
-                            .accountId(accountId)
-                            .amount(BigDecimal.valueOf(0))
-                            .currencyId(currency.id())
-                            .build()
-                    );
-
-                    return BalanceResponse.builder()
-                        .availableAmount(BigDecimal.valueOf(0))
-                        .currency(currency.currencyCode())
-                        .build();
-                }
-            ).toList();
+    public AccountResponse findByCustomerId(Long customerId) {
+        val response = accountMapper.findByCustomerId(customerId);
+        return response.orElseThrow(AccountNotFoundException::new);
     }
 }

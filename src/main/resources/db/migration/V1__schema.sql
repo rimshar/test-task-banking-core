@@ -1,50 +1,44 @@
 CREATE TABLE IF NOT EXISTS customer
 (
-    id UUID DEFAULT gen_random_uuid(),
-
-    PRIMARY KEY (id)
+    id   SERIAL PRIMARY KEY,
+    name VARCHAR(120)
 );
 
 CREATE TABLE IF NOT EXISTS currency
 (
-    id            UUID DEFAULT gen_random_uuid(),
-    currency_code VARCHAR(3) NOT NULL UNIQUE,
-
-    PRIMARY KEY (id)
+    id            SERIAL PRIMARY KEY,
+    currency_code VARCHAR(3) NOT NULL UNIQUE
 );
 
 CREATE TABLE IF NOT EXISTS account
 (
-    id           UUID DEFAULT gen_random_uuid(),
-    customer_id  UUID NOT NULL,
+    id           SERIAL PRIMARY KEY,
+    customer_id  INT NOT NULL,
     country_code VARCHAR(3),
 
-    PRIMARY KEY (id),
     FOREIGN KEY (customer_id) REFERENCES customer (id)
 );
 
 CREATE TABLE IF NOT EXISTS transaction
 (
-    id          UUID DEFAULT gen_random_uuid(),
-    account_id  UUID           NOT NULL,
+    id          SERIAL PRIMARY KEY,
+    account_id  INT            NOT NULL,
     amount      NUMERIC(19, 4) NOT NULL,
-    currency_id UUID           NOT NULL,
+    currency_id INT            NOT NULL,
     direction   VARCHAR(3)     NOT NULL,
     description VARCHAR(140)   NOT NULL,
 
-    PRIMARY KEY (id),
     FOREIGN KEY (account_id) REFERENCES account (id),
     FOREIGN KEY (currency_id) REFERENCES currency (id)
 );
 
 CREATE TABLE IF NOT EXISTS balance
 (
-    id          UUID DEFAULT gen_random_uuid(),
-    account_id  UUID           NOT NULL,
-    amount      NUMERIC(19, 4) NOT NULL,
-    currency_id UUID           NOT NULL,
+    id          SERIAL PRIMARY KEY,
+    account_id  INT NOT NULL,
+    amount      NUMERIC(19, 4) DEFAULT 0.00,
+    currency_id INT NOT NULL,
 
-    PRIMARY KEY (id),
     FOREIGN KEY (account_id) REFERENCES account (id),
     FOREIGN KEY (currency_id) REFERENCES currency (id)
 );

@@ -1,6 +1,11 @@
 package com.testtask.bankingcore.currency;
 
-public record CurrencyRecord(
-    String id,
-    String currencyCode
-) {}
+import lombok.Builder;
+import lombok.Data;
+
+@Data
+@Builder
+public class CurrencyRecord {
+    private Long id;
+    private String currencyCode;
+}

@@ -1,16 +1,22 @@
 package com.testtask.bankingcore.balance;
 
-import org.apache.ibatis.annotations.Insert;
-import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Options;
+import com.testtask.bankingcore.common.Money;
+import org.apache.ibatis.annotations.*;
+
+import java.util.List;
 
 @Mapper
 public interface BalanceMapper {
 
     @Insert("INSERT INTO balance(account_id, amount, currency_id) " +
-        "VALUES account_id=#{accountId}," +
-        "amount=#{amount})," +
-        "currency_id=#{currencyId}")
+        "VALUES(#{accountId},#{amount},#{currencyId})")
     @Options(useGeneratedKeys=true, keyProperty="id")
-    BalanceRecord save(BalanceRecord record);
+    int save(BalanceRecord record);
+
+    @Select("SELECT amount FROM balance WHERE account_id = #{accountId}")
+    @Results(value={
+        @Result(property="amount", column ="amount"),
+        @Result(property="currency", column="currency_id", javaType= String.class, one=@One(select="findCodeById"))
+    })
+    List<Money> findAccountBalances(String accountId);
 }

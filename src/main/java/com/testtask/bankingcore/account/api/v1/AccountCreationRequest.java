@@ -6,7 +6,7 @@ import java.util.List;
 
 @Builder
 public record AccountCreationRequest(
-    String customerId,
+    Long customerId,
     String country,
     List<String> currencies
 ) {}
