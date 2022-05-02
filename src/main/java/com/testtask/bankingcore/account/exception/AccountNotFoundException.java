@@ -2,11 +2,12 @@ package com.testtask.bankingcore.account.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 @ResponseStatus(value = HttpStatus.NOT_FOUND)
-public class AccountNotFoundException extends RuntimeException {
+public class AccountNotFoundException extends ResponseStatusException {
 
     public AccountNotFoundException() {
-        super("Account not found");
+        super(HttpStatus.NOT_FOUND, "Account not found");
     }
 }

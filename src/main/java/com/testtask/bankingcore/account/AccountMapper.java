@@ -9,20 +9,27 @@ import java.util.Optional;
 @Mapper
 public interface AccountMapper {
 
-    @Select("SELECT * FROM account")
-    List<AccountRecord> selectAll();
-
     @Insert("INSERT INTO account(customer_id, country_code) " +
         "VALUES(#{customerId},#{countryCode})")
     @Options(useGeneratedKeys=true, keyProperty="id")
-    int save(AccountRecord record);
+    void save(AccountRecord record);
 
 
-    @Select("SELECT account_id, customer_id FROM account WHERE customer_id= #{id}")
+    @Select("SELECT id, customer_id FROM account WHERE customer_id=#{id}")
     @Results(value = {
-        @Result(property="accountId", column = "account_id"),
-        @Result(property="customerId", column = "customerId"),
-        @Result(property="balances", column="account_id", javaType= List.class, many=@Many(select="findAccountBalances"))
+        @Result(property="accountId", column = "id"),
+        @Result(property="customerId", column = "customer_id"),
+        @Result(property="balances", column="account_id", javaType= List.class,
+            many=@Many(select="com.testtask.bankingcore.balance.BalanceMapper.findAccountBalances"))
     })
     Optional<AccountResponse> findByCustomerId(Long id);
+
+    @Select("SELECT id, customer_id FROM account WHERE id=#{id}")
+    @Results(value = {
+        @Result(property="accountId", column = "id"),
+        @Result(property="customerId", column = "customer_id"),
+        @Result(property="balances", column="id", javaType= List.class,
+            many=@Many(select="com.testtask.bankingcore.balance.BalanceMapper.findAccountBalances"))
+    })
+    Optional<AccountResponse> findById(Long id);
 }

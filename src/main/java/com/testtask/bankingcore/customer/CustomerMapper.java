@@ -9,5 +9,5 @@ public interface CustomerMapper {
 
     @Insert("INSERT INTO customer(name) VALUES(#{name})")
     @Options(useGeneratedKeys=true, keyProperty = "id", keyColumn = "id")
-    int save(CustomerRecord customer);
+    void save(CustomerRecord customer);
 }

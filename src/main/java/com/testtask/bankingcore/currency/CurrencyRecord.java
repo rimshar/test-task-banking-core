@@ -1,10 +1,8 @@
 package com.testtask.bankingcore.currency;
 
-import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 
-@Data
-@Builder
+@Getter
 public class CurrencyRecord {
     private Long id;
     private String currencyCode;

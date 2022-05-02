@@ -1,11 +1,11 @@
 package com.testtask.bankingcore.balance;
 
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 
 import java.math.BigDecimal;
 
-@Data
+@Getter
 @Builder
 public class BalanceRecord {
     private Long id;

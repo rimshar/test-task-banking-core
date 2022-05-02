@@ -49,4 +49,9 @@ public class AccountService {
         val response = accountMapper.findByCustomerId(customerId);
         return response.orElseThrow(AccountNotFoundException::new);
     }
+
+    public AccountResponse findById(Long accountId) {
+        val response = accountMapper.findById(accountId);
+        return response.orElseThrow(AccountNotFoundException::new);
+    }
 }

@@ -2,9 +2,9 @@ package com.testtask.bankingcore.account;
 
 import com.testtask.bankingcore.account.api.v1.AccountCreationRequest;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 
-@Data
+@Getter
 @Builder
 public class AccountRecord {
 

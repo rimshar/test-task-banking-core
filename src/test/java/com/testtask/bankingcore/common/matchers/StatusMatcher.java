@@ -13,9 +13,12 @@ public final class StatusMatcher extends BaseMatcher<Integer> {
         this.expected = expected;
     }
 
-    /* 2xx */
     public static StatusMatcher isOk() {
         return new StatusMatcher(HttpStatus.OK.value());
+    }
+
+    public static StatusMatcher isBadRequest() {
+        return new StatusMatcher(HttpStatus.BAD_REQUEST.value());
     }
 
     @Override

@@ -16,8 +16,8 @@ public class BalanceService {
     public BalanceResponse createBalance(Money balance, Long accountId) {
         mapper.save(
             BalanceRecord.builder()
-                .currencyId(currencyService.findIdByCode(balance.currency()))
-                .amount(balance.amount())
+                .currencyId(currencyService.findIdByCode(balance.getCurrency()))
+                .amount(balance.getAmount())
                 .accountId(accountId)
                 .build()
         );

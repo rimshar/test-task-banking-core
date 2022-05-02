@@ -1,11 +1,15 @@
 package com.testtask.bankingcore.common;
 
 import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 
+@Getter
+@Setter
 @Builder
-public record Money(
-    BigDecimal amount,
-    String currency
-) {}
+public class Money {
+    private BigDecimal amount;
+    private String currency;
+}
