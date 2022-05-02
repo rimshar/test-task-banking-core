@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static com.testtask.bankingcore.common.matchers.JsonMatcher.isJsonEqualTo;
+import static com.testtask.bankingcore.common.matchers.JsonMatcher.isJsonStrictlyEqualTo;
 import static com.testtask.bankingcore.common.matchers.StatusMatcher.isBadRequest;
 import static com.testtask.bankingcore.common.matchers.StatusMatcher.isOk;
 import static org.hamcrest.Matchers.equalTo;
@@ -76,7 +77,7 @@ class AccountControllerTest {
             .assertThat()
             .statusCode(isOk())
             .contentType(ContentType.JSON)
-            .body(isJsonEqualTo(expected));
+            .body(isJsonStrictlyEqualTo(expected));
     }
 
     @Test
@@ -99,8 +100,8 @@ class AccountControllerTest {
             {
                 message: Validation Failed,
                 details: [
-                    Country must not be empty,
-                    CustomerId must not be empty
+                    CustomerId must not be empty,
+                    Country must not be empty
                 ]
             }
             """;
@@ -119,7 +120,6 @@ class AccountControllerTest {
             .contentType(ContentType.JSON)
             .post("/api/v1/accounts");
     }
-
 
     private Response getAccount(Long accountId) {
         return RestAssured.get("/api/v1/accounts/" + accountId);

@@ -1,6 +1,8 @@
 package com.testtask.bankingcore.transaction.api.v1;
 
+import com.testtask.bankingcore.common.validation.ValueOfEnum;
 import com.testtask.bankingcore.transaction.enums.TransactionDirection;
+import lombok.Builder;
 import lombok.Getter;
 
 import javax.validation.constraints.DecimalMin;
@@ -9,6 +11,7 @@ import javax.validation.constraints.Size;
 import java.math.BigDecimal;
 
 @Getter
+@Builder
 public class TransactionRequest {
     @NotNull(message = "AccountID must not be empty")
     private Long accountId;
@@ -17,8 +20,8 @@ public class TransactionRequest {
     private BigDecimal amount;
     @NotNull(message = "Currency must not be empty")
     private String currency;
-    @NotNull(message = "Direction must not be empty")
-    private TransactionDirection direction;
+    @ValueOfEnum(enumClass = TransactionDirection.class, message = "Transaction direction must be IN or OUT")
+    private String direction;
     @Size(min = 3, max = 140, message = "Description must be between 3 and 140 characters")
     private String description;
 }

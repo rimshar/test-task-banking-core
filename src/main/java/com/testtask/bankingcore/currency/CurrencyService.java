@@ -15,4 +15,9 @@ public class CurrencyService {
             .orElseThrow(() -> new InvalidCurrencyException(currency))
             .getId();
     }
+
+    public String findCodeById(Long currencyId) {
+        return mapper.findCodeById(currencyId)
+            .orElse("Unknown currency");
+    }
 }
