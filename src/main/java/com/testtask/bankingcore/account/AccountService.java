@@ -3,6 +3,8 @@ package com.testtask.bankingcore.account;
 import com.testtask.bankingcore.account.api.v1.AccountCreationRequest;
 import com.testtask.bankingcore.account.api.v1.AccountResponse;
 import com.testtask.bankingcore.account.exception.AccountNotFoundException;
+import com.testtask.bankingcore.account.notification.AccountCreationNotificationMessage;
+import com.testtask.bankingcore.account.notification.AccountNotificationRabbitClient;
 import com.testtask.bankingcore.balance.BalanceService;
 import com.testtask.bankingcore.balance.api.v1.BalanceResponse;
 import com.testtask.bankingcore.common.Money;
@@ -13,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -22,6 +25,7 @@ public class AccountService {
 
     private final AccountMapper accountMapper;
     private final BalanceService balanceService;
+    private final AccountNotificationRabbitClient rabbitClient;
 
     public AccountResponse createAccount(AccountCreationRequest request) {
         val account = AccountRecord.fromCreationRequest(request);
@@ -38,11 +42,9 @@ public class AccountService {
                 ))
             .toList();
 
-        return AccountResponse.builder()
-            .accountId(balances.get(0).accountId())
-            .customerId(request.customerId())
-            .balances(balances.stream().map(BalanceResponse::balance).toList())
-            .build();
+        rabbitClient.sendCreationNotification(creationNotificationMessage(balances.get(0).accountId(), request));
+
+        return createAccountResponse(request.customerId(), balances);
     }
 
     public AccountResponse findByCustomerId(Long customerId) {
@@ -53,5 +55,21 @@ public class AccountService {
     public AccountResponse findById(Long accountId) {
         val response = accountMapper.findById(accountId);
         return response.orElseThrow(AccountNotFoundException::new);
+    }
+
+    private AccountCreationNotificationMessage creationNotificationMessage(Long accountId, AccountCreationRequest request) {
+        return AccountCreationNotificationMessage.builder()
+            .accountId(accountId)
+            .customerId(request.customerId())
+            .countryCode(request.country())
+            .build();
+    }
+
+    private AccountResponse createAccountResponse(Long customerId, List<BalanceResponse> balances) {
+        return AccountResponse.builder()
+            .accountId(balances.get(0).accountId())
+            .customerId(customerId)
+            .balances(balances.stream().map(BalanceResponse::balance).toList())
+            .build();
     }
 }

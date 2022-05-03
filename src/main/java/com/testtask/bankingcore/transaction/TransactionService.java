@@ -7,6 +7,8 @@ import com.testtask.bankingcore.transaction.api.v1.TransactionCreationRequest;
 import com.testtask.bankingcore.transaction.api.v1.TransactionCreationResponse;
 import com.testtask.bankingcore.transaction.api.v1.TransactionRetrievalResponse;
 import com.testtask.bankingcore.transaction.enums.TransactionDirection;
+import com.testtask.bankingcore.transaction.notification.TransactionCreationNotificationMessage;
+import com.testtask.bankingcore.transaction.notification.TransactionNotificationRabbitClient;
 import lombok.RequiredArgsConstructor;
 import lombok.val;
 import org.springframework.stereotype.Service;
@@ -23,12 +25,15 @@ public class TransactionService {
     private final AccountService accountService;
     private final BalanceService balanceService;
     private final CurrencyService currencyService;
+    private final TransactionNotificationRabbitClient rabbitClient;
 
     public TransactionCreationResponse createTransaction(Long accountId, TransactionCreationRequest request) {
         accountService.findById(accountId);
 
         val transaction = createTransactionRecord(accountId, request);
         mapper.save(transaction);
+
+        rabbitClient.sendCreationNotification(createTransactionCreationNotificationMessage(transaction, request.getCurrency()));
 
         val balance = balanceService.updateCurrencyBalance(
             transaction.getAccountId(),
@@ -47,7 +52,6 @@ public class TransactionService {
             .updatedBalance(balance.getAmount())
             .build();
     }
-
 
     public List<TransactionRetrievalResponse> getTransactions(Long accountId) {
         accountService.findById(accountId);
@@ -73,6 +77,19 @@ public class TransactionService {
             .currencyId(currencyService.findIdByCode(request.getCurrency()))
             .direction(TransactionDirection.valueOf(request.getDirection()))
             .description(request.getDescription())
+            .build();
+    }
+
+    private TransactionCreationNotificationMessage createTransactionCreationNotificationMessage(
+        TransactionRecord transaction,
+        String currency
+    ) {
+        return TransactionCreationNotificationMessage.builder()
+            .transactionId(transaction.getId())
+            .amount(transaction.getAmount())
+            .currency(currency)
+            .direction(transaction.getDirection())
+            .description(transaction.getDescription())
             .build();
     }
 }

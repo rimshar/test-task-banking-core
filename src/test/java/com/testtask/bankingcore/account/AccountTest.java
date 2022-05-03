@@ -2,14 +2,23 @@ package com.testtask.bankingcore.account;
 
 import com.testtask.bankingcore.account.api.v1.AccountCreationRequest;
 import com.testtask.bankingcore.account.exception.AccountNotFoundException;
+import com.testtask.bankingcore.common.extensions.RabbitMessageExtension;
+import com.testtask.bankingcore.common.listeners.rabbit.RabbitTestHarness;
 import com.testtask.bankingcore.common.meta.Annotations.IntegrationTest;
+import com.testtask.bankingcore.config.amqp.account.AccountAmqpProperties;
+import com.testtask.bankingcore.config.amqp.balance.BalanceAmqpProperties;
+import com.testtask.bankingcore.config.amqp.customer.CustomerAmqpProperties;
 import com.testtask.bankingcore.customer.CustomerService;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.ExtensionMethod;
 import lombok.val;
+import org.json.JSONException;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.skyscreamer.jsonassert.JSONCompareMode;
 
 import java.util.List;
 
@@ -20,13 +29,19 @@ import static com.testtask.bankingcore.common.matchers.StatusMatcher.isOk;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.skyscreamer.jsonassert.JSONAssert.assertEquals;
 
 @IntegrationTest
 @RequiredArgsConstructor
+@ExtensionMethod(RabbitMessageExtension.class)
 class AccountTest {
 
     private final AccountService accountService;
     private final CustomerService customerService;
+    private final RabbitTestHarness rabbitHarness;
+    private final AccountAmqpProperties accountProperties;
+    private final CustomerAmqpProperties customerProperties;
+    private final BalanceAmqpProperties balanceProperties;
 
     @Test
     void happy_path_account_saved() {
@@ -80,38 +95,105 @@ class AccountTest {
             .body(isJsonStrictlyEqualTo(expected));
     }
 
-    @Test
-    void exception_thrown_on_invalid_currency() {
-        val customerId = customerService.createCustomer("Test customer");
+    @Nested
+    class RabbitMq {
 
-        postAccount(createAccountCreationRequest(customerId, "EE", List.of("EUR", "JPY")))
-            .then()
-            .assertThat()
-            .statusCode(isBadRequest())
-            .contentType(ContentType.JSON)
-            .body("message", equalTo("Invalid currency: JPY"));
+        @Test
+        void happy_path_messages_received() throws InterruptedException, JSONException {
+            val accountQueue = rabbitHarness.listen(
+                accountProperties.creation().amqp().exchange(),
+                accountProperties.creation().amqp().routingKey()
+            );
 
-        assertThrows(AccountNotFoundException.class, () -> accountService.findByCustomerId(customerId));
+            val customerQueue = rabbitHarness.listen(
+                customerProperties.creation().amqp().exchange(),
+                customerProperties.creation().amqp().routingKey()
+            );
+
+            val balanceQueue = rabbitHarness.listen(
+                balanceProperties.creation().amqp().exchange(),
+                balanceProperties.creation().amqp().routingKey()
+            );
+
+            val customerId = customerService.createCustomer("Test customer");
+
+            val accountId = postAccount(createAccountCreationRequest(customerId, "EE", List.of("EUR")))
+                .then()
+                .extract()
+                .jsonPath()
+                .getLong("accountId");
+
+
+            String expectedAccountCreationMessage = """
+            {
+                accountId: %s,
+                customerId: %s,
+                countryCode: EE
+            }
+            """.formatted(accountId, customerId);
+
+            String expectedCustomerCreationMessage = """
+            {
+                customerId: %s,
+                name: "Test customer"
+            }
+            """.formatted(accountId, customerId);
+
+            String expectedBalanceCreationMessage = """
+            {
+                accountId: %s,
+                amount: 0.00,
+                currency: EUR
+            }
+            """.formatted(accountId, customerId);
+
+            val accountCreationMessage = accountQueue.await().json();
+            val customerCreationMessage = customerQueue.await().json();
+            val balanceCreationMessage = balanceQueue.await().json();
+
+            assertEquals(expectedAccountCreationMessage, accountCreationMessage, JSONCompareMode.STRICT);
+            assertEquals(expectedCustomerCreationMessage, customerCreationMessage, JSONCompareMode.STRICT);
+            assertEquals(expectedBalanceCreationMessage, balanceCreationMessage, JSONCompareMode.LENIENT);
+        }
+
     }
 
-    @Test
-    void invalid_request() {
-        String expected = """
-            {
-                message: Bad Request,
-                details: [
-                    CustomerId must not be empty,
-                    Country must not be empty
-                ]
-            }
-            """;
+    @Nested
+    class Validation {
 
-        postAccount(createAccountCreationRequest(null, null, List.of("EUR", "JPY")))
-            .then()
-            .assertThat()
-            .statusCode(isBadRequest())
-            .contentType(ContentType.JSON)
-            .body(isJsonEqualTo(expected));
+        @Test
+        void exception_thrown_on_invalid_currency() {
+            val customerId = customerService.createCustomer("Test customer");
+
+            postAccount(createAccountCreationRequest(customerId, "EE", List.of("EUR", "JPY")))
+                .then()
+                .assertThat()
+                .statusCode(isBadRequest())
+                .contentType(ContentType.JSON)
+                .body("message", equalTo("Invalid currency: JPY"));
+
+            assertThrows(AccountNotFoundException.class, () -> accountService.findByCustomerId(customerId));
+        }
+
+        @Test
+        void invalid_request() {
+            String expected = """
+                {
+                    message: Bad Request,
+                    details: [
+                        CustomerId must not be empty,
+                        Country must not be empty
+                    ]
+                }
+                """;
+
+            postAccount(createAccountCreationRequest(null, null, List.of("EUR", "JPY")))
+                .then()
+                .assertThat()
+                .statusCode(isBadRequest())
+                .contentType(ContentType.JSON)
+                .body(isJsonEqualTo(expected));
+        }
     }
 
     private Response postAccount(AccountCreationRequest request) {

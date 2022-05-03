@@ -3,6 +3,9 @@ package com.testtask.bankingcore.balance;
 import com.testtask.bankingcore.balance.api.v1.BalanceResponse;
 import com.testtask.bankingcore.balance.exception.InsufficientFundsException;
 import com.testtask.bankingcore.balance.exception.UnsupportedCurrencyException;
+import com.testtask.bankingcore.balance.notification.BalanceCreationNotificationMessage;
+import com.testtask.bankingcore.balance.notification.BalanceNotificationRabbitClient;
+import com.testtask.bankingcore.balance.notification.BalanceUpdateNotificationMessage;
 import com.testtask.bankingcore.common.Money;
 import com.testtask.bankingcore.currency.CurrencyService;
 import com.testtask.bankingcore.transaction.enums.TransactionDirection;
@@ -18,14 +21,18 @@ public class BalanceService {
 
     private final BalanceMapper mapper;
     private final CurrencyService currencyService;
+    private final BalanceNotificationRabbitClient rabbitClient;
 
     public BalanceResponse createBalance(Money balance, Long accountId) {
-        mapper.save(
-            BalanceRecord.builder()
-                .currencyId(currencyService.findIdByCode(balance.getCurrency()))
-                .amount(balance.getAmount())
-                .accountId(accountId)
-                .build()
+        val balanceRecord = createBalanceRecord(balance, accountId);
+
+        mapper.save(balanceRecord);
+
+        rabbitClient.sendCreationNotification(
+            createBalanceCreationNotificationMessage(
+                balanceRecord,
+                balance.getCurrency()
+            )
         );
 
         return BalanceResponse.builder()
@@ -40,8 +47,10 @@ public class BalanceService {
         BigDecimal amount,
         TransactionDirection direction
     ) {
+        val currencyCode = currencyService.findCodeById(currencyId);
+
         val balance = mapper.findCurrencyBalance(accountId, currencyId)
-            .orElseThrow(() -> new UnsupportedCurrencyException(accountId, currencyService.findCodeById(currencyId)));
+            .orElseThrow(() -> new UnsupportedCurrencyException(accountId, currencyCode));
 
         if (direction == TransactionDirection.OUT) {
             val updatedAmount = balance.getAmount().subtract(amount);
@@ -55,6 +64,34 @@ public class BalanceService {
 
         mapper.updateBalance(balance);
 
+        rabbitClient.sendUpdateNotification(createBalanceUpdateNotificationMessage(balance, currencyCode));
+
         return balance;
+    }
+
+    private BalanceRecord createBalanceRecord(Money balance, Long accountId) {
+        return BalanceRecord.builder()
+            .currencyId(currencyService.findIdByCode(balance.getCurrency()))
+            .amount(balance.getAmount())
+            .accountId(accountId)
+            .build();
+    }
+
+    private BalanceCreationNotificationMessage createBalanceCreationNotificationMessage(BalanceRecord record,  String currency) {
+        return BalanceCreationNotificationMessage.builder()
+            .balanceId(record.getId())
+            .accountId(record.getAccountId())
+            .amount(record.getAmount())
+            .currency(currency)
+            .build();
+    }
+
+    private BalanceUpdateNotificationMessage createBalanceUpdateNotificationMessage(BalanceRecord record, String currency) {
+        return BalanceUpdateNotificationMessage.builder()
+            .accountId(record.getAccountId())
+            .balanceId(record.getId())
+            .currency(currency)
+            .updatedBalance(record.getAmount())
+            .build();
     }
 }

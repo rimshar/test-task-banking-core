@@ -1,3 +1,65 @@
+amqp:
+  exchanges:
+    - name: &bc-external bc.external
+
+  queues:
+    - name: &transaction-created-queue bankcore.transactions.created.v1
+      bound-to:
+        exchange: *bc-external
+        routing-key: &transaction-created-routing-key TRANSACTION.CREATED.v1
+
+    - name: &account-created-queue bankcore.accounts.created.v1
+      bound-to:
+        exchange: *bc-external
+        routing-key: &account-created-routing-key ACCOUNT.CREATED.v1
+
+    - name: &customer-created-queue bankcore.customer.created.v1
+      bound-to:
+        exchange: *bc-external
+        routing-key: &customer-created-routing-key CUSTOMER.CREATED.v1
+
+    - name: &balance-created-queue bankcore.balance.created.v1
+      bound-to:
+        exchange: *bc-external
+        routing-key: &balance-created-routing-key BALANCE.CREATED.v1
+
+    - name: &balance-updated-queue bankcore.balance.updated.v1
+      bound-to:
+        exchange: *bc-external
+        routing-key: &balance-updated-routing-key BALANCE.UPDATED.v1
+
+account:
+  creation:
+    amqp:
+      exchange: *bc-external
+      routing-key: *account-created-routing-key
+      queue: *account-created-queue
+
+balance:
+  creation:
+    amqp:
+      exchange: *bc-external
+      routing-key: *balance-created-routing-key
+      queue: *balance-created-queue
+  update:
+    amqp:
+      exchange: *bc-external
+      routing-key: *balance-updated-routing-key
+      queue: *balance-updated-queue
+
+customer:
+  creation:
+    amqp:
+      exchange: *bc-external
+      routing-key: *customer-created-routing-key
+      queue: *customer-created-queue
+
+transaction:
+  creation:
+    amqp:
+      routing-key: *transaction-created-routing-key
+      queue: *transaction-created-queue
+
 db:
   host: localhost
   port: 5432
