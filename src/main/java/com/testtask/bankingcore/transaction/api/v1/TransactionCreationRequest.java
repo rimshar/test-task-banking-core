@@ -12,9 +12,7 @@ import java.math.BigDecimal;
 
 @Getter
 @Builder
-public class TransactionRequest {
-    @NotNull(message = "AccountID must not be empty")
-    private Long accountId;
+public class TransactionCreationRequest {
     @NotNull(message = "Amount must not be empty")
     @DecimalMin(value = "0.0", inclusive = false, message = "Invalid amount")
     private BigDecimal amount;

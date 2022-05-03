@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @IntegrationTest
 @RequiredArgsConstructor
-class AccountControllerTest {
+class AccountTest {
 
     private final AccountService accountService;
     private final CustomerService customerService;
@@ -42,7 +42,7 @@ class AccountControllerTest {
             }
             """.formatted(customerId);
 
-        saveAccount(createRequest(customerId, "EE", List.of("EUR", "USD")))
+        postAccount(createAccountCreationRequest(customerId, "EE", List.of("EUR", "USD")))
             .then()
             .assertThat()
             .statusCode(isOk())
@@ -55,7 +55,7 @@ class AccountControllerTest {
     void happy_path_account_retrieved() {
         val customerId = customerService.createCustomer("Test customer");
 
-        val accountId = saveAccount(createRequest(customerId, "EE", List.of("EUR", "USD")))
+        val accountId = postAccount(createAccountCreationRequest(customerId, "EE", List.of("EUR", "USD")))
             .then()
             .extract()
             .jsonPath()
@@ -84,7 +84,7 @@ class AccountControllerTest {
     void exception_thrown_on_invalid_currency() {
         val customerId = customerService.createCustomer("Test customer");
 
-        saveAccount(createRequest(customerId, "EE", List.of("EUR", "JPY")))
+        postAccount(createAccountCreationRequest(customerId, "EE", List.of("EUR", "JPY")))
             .then()
             .assertThat()
             .statusCode(isBadRequest())
@@ -106,7 +106,7 @@ class AccountControllerTest {
             }
             """;
 
-        saveAccount(createRequest(null, null, List.of("EUR", "JPY")))
+        postAccount(createAccountCreationRequest(null, null, List.of("EUR", "JPY")))
             .then()
             .assertThat()
             .statusCode(isBadRequest())
@@ -114,7 +114,7 @@ class AccountControllerTest {
             .body(isJsonEqualTo(expected));
     }
 
-    private Response saveAccount(AccountCreationRequest request) {
+    private Response postAccount(AccountCreationRequest request) {
         return RestAssured.given()
             .body(request)
             .contentType(ContentType.JSON)
@@ -122,10 +122,10 @@ class AccountControllerTest {
     }
 
     private Response getAccount(Long accountId) {
-        return RestAssured.get("/api/v1/accounts/" + accountId);
+        return RestAssured.get("/api/v1/accounts/%s".formatted(accountId));
     }
 
-    private AccountCreationRequest createRequest(Long customerId, String countryCode, List<String> currencies) {
+    private AccountCreationRequest createAccountCreationRequest(Long customerId, String countryCode, List<String> currencies) {
         return AccountCreationRequest.builder()
             .customerId(customerId)
             .country(countryCode)

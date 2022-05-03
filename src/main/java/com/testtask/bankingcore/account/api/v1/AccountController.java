@@ -17,16 +17,15 @@ import javax.validation.Valid;
 @RequestMapping(path = "/api/v1/accounts", produces = MediaType.APPLICATION_JSON_VALUE)
 public class AccountController {
 
-    private final AccountService service;
+    private final AccountService accountService;
 
     @PostMapping
     AccountResponse createAccount(@Valid @RequestBody AccountCreationRequest request) {
-        return service.createAccount(request);
+        return accountService.createAccount(request);
     }
 
     @GetMapping("/{accountId}")
     AccountResponse getAccount(@PathVariable Long accountId) {
-        return service.findById(accountId);
+        return accountService.findById(accountId);
     }
-
 }

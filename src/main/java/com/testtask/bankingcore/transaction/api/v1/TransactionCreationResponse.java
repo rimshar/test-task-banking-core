@@ -10,7 +10,7 @@ import java.math.BigDecimal;
 
 @Builder
 @Getter
-public class TransactionResponse {
+public class TransactionCreationResponse {
     private Long accountId;
     private Long transactionId;
     @JsonDeserialize(using = BigDecimal2JsonDeserializer.class)
