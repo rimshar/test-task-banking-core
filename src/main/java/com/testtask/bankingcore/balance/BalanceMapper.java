@@ -42,5 +42,5 @@ public interface BalanceMapper {
     Optional<BalanceRecord> findCurrencyBalance(Long accountId, Long currencyId);
 
     @Update("UPDATE balance SET amount=#{amount} WHERE id =#{id}")
-    void updateBalance(BalanceRecord record);
+    void update(BalanceRecord record);
 }

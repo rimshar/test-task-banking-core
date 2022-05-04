@@ -52,17 +52,13 @@ public class BalanceService {
         val balance = mapper.findCurrencyBalance(accountId, currencyId)
             .orElseThrow(() -> new UnsupportedCurrencyException(accountId, currencyCode));
 
-        if (direction == TransactionDirection.OUT) {
-            val updatedAmount = balance.getAmount().subtract(amount);
-            if (updatedAmount.compareTo(BigDecimal.ZERO) < 0) {
-                throw new InsufficientFundsException();
-            }
-            balance.setAmount(updatedAmount);
-        } else {
-            balance.setAmount(balance.getAmount().add(amount));
+        if (direction == TransactionDirection.OUT && balance.getAmount().compareTo(amount) < 0) {
+            throw new InsufficientFundsException();
         }
 
-        mapper.updateBalance(balance);
+        balance.setAmount(calculateBalanceChange(balance.getAmount(), amount, direction));
+
+        mapper.update(balance);
 
         rabbitClient.sendUpdateNotification(createBalanceUpdateNotificationMessage(balance, currencyCode));
 
@@ -77,7 +73,7 @@ public class BalanceService {
             .build();
     }
 
-    private BalanceCreationNotificationMessage createBalanceCreationNotificationMessage(BalanceRecord record,  String currency) {
+    private BalanceCreationNotificationMessage createBalanceCreationNotificationMessage(BalanceRecord record, String currency) {
         return BalanceCreationNotificationMessage.builder()
             .balanceId(record.getId())
             .accountId(record.getAccountId())
@@ -93,5 +89,9 @@ public class BalanceService {
             .currency(currency)
             .updatedBalance(record.getAmount())
             .build();
+    }
+
+    private BigDecimal calculateBalanceChange(BigDecimal balance, BigDecimal transactionAmount, TransactionDirection direction) {
+        return direction.calculateAmount(balance, transactionAmount);
     }
 }
