@@ -81,9 +81,16 @@ spring:
     type: com.zaxxer.hikari.HikariDataSource
     url: jdbc:postgresql://${db.host}:${db.port}/${db.name}?useUnicode=yes&characterEncoding=UTF-8&prepareThreshold=0
     driver-class-name: org.postgresql.Driver
+
+  flyway:
+    placeholder-replacement: false
+    baseline-on-migrate: true
+    user: ${spring.datasource.username}
+    password: ${spring.datasource.password}
+    url: ${spring.datasource.url}
+
   hikari:
     minimum-idle: 2
     maximum-pool-size: 10
     data-source-properties:
       socketTimeout: 60
-
