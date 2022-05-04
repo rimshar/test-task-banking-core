@@ -8,6 +8,12 @@ services:
       - database
     environment:
       - db.host=database
+      - spring_rabbitmq_host=rabbitmq
+      - spring_rabbitmq_port=5672
+      - spring_rabbitmq_username=guest
+      - spring_rabbitmq_password=guest
+      - resolute_rabbitmq_publishQueueName=resolute-run-request
+      - resolute_rabbitmq_exchange=resolute
 
   database:
     image: postgres:14.2-alpine
