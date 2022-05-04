@@ -1,5 +1,6 @@
 package com.testtask.bankingcore.customer;
 
+import com.testtask.bankingcore.customer.exception.CustomerNotFoundException;
 import com.testtask.bankingcore.customer.notification.CustomerCreationNotificationMessage;
 import com.testtask.bankingcore.customer.notification.CustomerNotificationRabbitClient;
 import lombok.RequiredArgsConstructor;
@@ -26,5 +27,10 @@ public class CustomerService {
         );
 
         return customer.getId();
+    }
+
+    public CustomerRecord findById(Long id) {
+        val customer = mapper.findById(id);
+        return customer.orElseThrow(CustomerNotFoundException::new);
     }
 }

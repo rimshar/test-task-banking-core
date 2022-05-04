@@ -25,6 +25,7 @@ import static com.testtask.bankingcore.common.matchers.JsonMatcher.isEqualTo;
 import static com.testtask.bankingcore.common.matchers.JsonMatcher.isStrictlyEqualTo;
 import static com.testtask.bankingcore.common.matchers.StatusMatcher.isBadRequest;
 import static com.testtask.bankingcore.common.matchers.StatusMatcher.isOk;
+import static com.testtask.bankingcore.common.matchers.StatusMatcher.notFound;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -171,6 +172,25 @@ class AccountTest {
                 .body("message", equalTo("Invalid currency: JPY"));
 
             assertThrows(AccountNotFoundException.class, () -> accountService.findByCustomerId(customerId));
+        }
+
+        @Test
+        void non_existing_customer() {
+            String expected = """
+                {
+                    message: Customer not found,
+                    path: /api/v1/accounts,
+                    error: Not Found,
+                    status: 404
+                }
+                """;
+
+            postAccount(createAccountCreationRequest(9999L, "EST", List.of("EUR", "JPY")))
+                .then()
+                .assertThat()
+                .statusCode(notFound())
+                .contentType(ContentType.JSON)
+                .body(isEqualTo(expected));
         }
 
         @Test

@@ -8,6 +8,7 @@ import com.testtask.bankingcore.account.notification.AccountNotificationRabbitCl
 import com.testtask.bankingcore.balance.BalanceService;
 import com.testtask.bankingcore.balance.api.v1.BalanceResponse;
 import com.testtask.bankingcore.common.Money;
+import com.testtask.bankingcore.customer.CustomerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -25,9 +26,12 @@ public class AccountService {
 
     private final AccountMapper accountMapper;
     private final BalanceService balanceService;
+    private final CustomerService customerService;
     private final AccountNotificationRabbitClient rabbitClient;
 
     public AccountResponse createAccount(AccountCreationRequest request) {
+        val customerId = customerService.findById(request.customerId()).getId();
+
         val account = AccountRecord.fromCreationRequest(request);
         accountMapper.save(account);
 
@@ -44,7 +48,7 @@ public class AccountService {
 
         rabbitClient.sendCreationNotification(creationNotificationMessage(balances.get(0).accountId(), request));
 
-        return createAccountResponse(request.customerId(), balances);
+        return createAccountResponse(customerId, balances);
     }
 
     public AccountResponse findByCustomerId(Long customerId) {

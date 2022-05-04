@@ -11,7 +11,7 @@ public record AccountCreationRequest(
     @NotNull(message = "CustomerId must not be empty")
     Long customerId,
     @NotNull(message = "Country must not be empty")
-    @Size(min=3, max = 3, message = "Country code must be in Alpha-3 ISO 3166 format")
+    @Size(min=2, max = 3, message = "Country code must be in ISO 3166 format")
     String country,
     List<String> currencies
 ) { }
