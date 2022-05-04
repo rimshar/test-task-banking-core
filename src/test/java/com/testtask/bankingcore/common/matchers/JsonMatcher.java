@@ -16,11 +16,11 @@ public final class JsonMatcher extends BaseMatcher<String> {
         this.strict = strict;
     }
 
-    public static JsonMatcher isJsonEqualTo(String expected) {
+    public static JsonMatcher isEqualTo(String expected) {
         return new JsonMatcher(expected, false);
     }
 
-    public static JsonMatcher isJsonStrictlyEqualTo(String expected) {
+    public static JsonMatcher isStrictlyEqualTo(String expected) {
         return new JsonMatcher(expected, true);
     }
 

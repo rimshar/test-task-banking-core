@@ -2,13 +2,18 @@ package com.testtask.bankingcore.transaction;
 
 import com.testtask.bankingcore.account.AccountService;
 import com.testtask.bankingcore.account.api.v1.AccountCreationRequest;
+import com.testtask.bankingcore.common.extensions.RabbitMessageExtension;
+import com.testtask.bankingcore.common.listeners.rabbit.RabbitTestHarness;
 import com.testtask.bankingcore.common.meta.Annotations.IntegrationTest;
+import com.testtask.bankingcore.config.amqp.balance.BalanceAmqpProperties;
+import com.testtask.bankingcore.config.amqp.transaction.TransactionAmqpProperties;
 import com.testtask.bankingcore.customer.CustomerService;
 import com.testtask.bankingcore.transaction.api.v1.TransactionCreationRequest;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.ExtensionMethod;
 import lombok.val;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -18,7 +23,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.IntStream;
 
-import static com.testtask.bankingcore.common.matchers.JsonMatcher.isJsonEqualTo;
+import static com.testtask.bankingcore.common.assertions.JsonAssert.assertThatJson;
+import static com.testtask.bankingcore.common.matchers.JsonMatcher.isEqualTo;
 import static com.testtask.bankingcore.common.matchers.StatusMatcher.isBadRequest;
 import static com.testtask.bankingcore.common.matchers.StatusMatcher.isOk;
 import static com.testtask.bankingcore.common.matchers.StatusMatcher.notFound;
@@ -26,16 +32,20 @@ import static org.hamcrest.Matchers.notNullValue;
 
 @IntegrationTest
 @RequiredArgsConstructor
+@ExtensionMethod(RabbitMessageExtension.class)
 public class TransactionTest {
 
     private final AccountService accountService;
     private final CustomerService customerService;
+    private final RabbitTestHarness rabbitHarness;
+    private final TransactionAmqpProperties transactionProperties;
+    private final BalanceAmqpProperties balanceAmqpProperties;
 
     @Test
     void happy_path_transactions_saved() {
         val accountId = createAccount(createTestCustomer());
 
-        String expectedBefore = """
+        String expectedAfterDeposit = """
             {
                 accountId: %s,
                 amount: 100.50,
@@ -56,9 +66,9 @@ public class TransactionTest {
             .statusCode(isOk())
             .contentType(ContentType.JSON)
             .body("transactionId", notNullValue())
-            .body(isJsonEqualTo(expectedBefore));
+            .body(isEqualTo(expectedAfterDeposit));
 
-        String expectedAfter = """
+        String expectedAfterWithdrawal = """
             {
                 accountId: %s,
                 amount: 40.25,
@@ -79,7 +89,7 @@ public class TransactionTest {
             .statusCode(isOk())
             .contentType(ContentType.JSON)
             .body("transactionId", notNullValue())
-            .body(isJsonEqualTo(expectedAfter));
+            .body(isEqualTo(expectedAfterWithdrawal));
     }
 
     @Test
@@ -137,7 +147,62 @@ public class TransactionTest {
             .assertThat()
             .statusCode(isOk())
             .contentType(ContentType.JSON)
-            .body(isJsonEqualTo(expected));
+            .body(isEqualTo(expected));
+    }
+
+    @Nested
+    class RabbitMq {
+
+        @Test
+        void happy_path_messages_received() throws InterruptedException {
+            val transactionQueue = rabbitHarness.listen(
+                transactionProperties.creation().amqp().exchange(),
+                transactionProperties.creation().amqp().routingKey()
+            );
+
+            val balanceQueue = rabbitHarness.listen(
+                balanceAmqpProperties.update().amqp().exchange(),
+                balanceAmqpProperties.update().amqp().routingKey()
+            );
+
+            val accountId = createAccount(createTestCustomer());
+
+            val transactionId = postTransaction(
+                accountId,
+                createTransactionRequest(
+                    BigDecimal.valueOf(100.5000), "EUR", "IN", "Test transaction"
+                ))
+                .then()
+                .extract()
+                .jsonPath()
+                .getLong("transactionId");
+
+
+            String expectedTransactionCreationMessage = """
+                {
+                    transactionId: %s,
+                    amount: 100.50,
+                    currency: EUR,
+                    direction: in,
+                    description: 'Test transaction'
+                }
+                """.formatted(transactionId);
+
+            String expectedBalanceUpdateMessage = """
+                {
+                    accountId: %s,
+                    currency: EUR,
+                    updatedBalance: 100.50
+                }
+                """.formatted(accountId);
+
+            val transactionCreationMessage = transactionQueue.await().json();
+            val balanceUpdateMessage = balanceQueue.await().json();
+
+            assertThatJson(transactionCreationMessage).isStrictlyEqualTo(expectedTransactionCreationMessage);
+            assertThatJson(balanceUpdateMessage).isEqualTo(expectedBalanceUpdateMessage);
+        }
+
     }
 
     @Nested
@@ -166,7 +231,7 @@ public class TransactionTest {
                 .statusCode(isBadRequest())
                 .contentType(ContentType.JSON)
                 .body("timestamp", notNullValue())
-                .body(isJsonEqualTo(expected));
+                .body(isEqualTo(expected));
         }
 
         @Test
@@ -192,7 +257,7 @@ public class TransactionTest {
                 .statusCode(notFound())
                 .contentType(ContentType.JSON)
                 .body("timestamp", notNullValue())
-                .body(isJsonEqualTo(expected));
+                .body(isEqualTo(expected));
         }
 
         @Test
@@ -217,7 +282,7 @@ public class TransactionTest {
                 .assertThat()
                 .statusCode(isBadRequest())
                 .contentType(ContentType.JSON)
-                .body(isJsonEqualTo(expected));
+                .body(isEqualTo(expected));
         }
 
         @Test
@@ -243,7 +308,7 @@ public class TransactionTest {
                 .statusCode(isBadRequest())
                 .contentType(ContentType.JSON)
                 .body("timestamp", notNullValue())
-                .body(isJsonEqualTo(expected));
+                .body(isEqualTo(expected));
         }
 
         @Test
@@ -267,7 +332,7 @@ public class TransactionTest {
                 .statusCode(notFound())
                 .contentType(ContentType.JSON)
                 .body("timestamp", notNullValue())
-                .body(isJsonEqualTo(expected));
+                .body(isEqualTo(expected));
         }
     }
 
@@ -277,14 +342,14 @@ public class TransactionTest {
 
     private Long createAccount(Long customerId) {
         return accountService.createAccount(
-            getAccountCreationRequest(customerId, "EE", List.of("EUR", "USD"))
+            getAccountCreationRequest(customerId, List.of("EUR", "USD"))
         ).getAccountId();
     }
 
-    private AccountCreationRequest getAccountCreationRequest(Long customerId, String country, List<String> currencies) {
+    private AccountCreationRequest getAccountCreationRequest(Long customerId, List<String> currencies) {
         return AccountCreationRequest.builder()
             .customerId(customerId)
-            .country(country)
+            .country("EE")
             .currencies(currencies)
             .build();
     }

@@ -57,6 +57,7 @@ customer:
 transaction:
   creation:
     amqp:
+      exchange: *bc-external
       routing-key: *transaction-created-routing-key
       queue: *transaction-created-queue
 

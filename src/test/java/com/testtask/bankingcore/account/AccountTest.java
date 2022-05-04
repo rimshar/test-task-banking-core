@@ -15,21 +15,19 @@ import io.restassured.response.Response;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.ExtensionMethod;
 import lombok.val;
-import org.json.JSONException;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.skyscreamer.jsonassert.JSONCompareMode;
 
 import java.util.List;
 
-import static com.testtask.bankingcore.common.matchers.JsonMatcher.isJsonEqualTo;
-import static com.testtask.bankingcore.common.matchers.JsonMatcher.isJsonStrictlyEqualTo;
+import static com.testtask.bankingcore.common.assertions.JsonAssert.assertThatJson;
+import static com.testtask.bankingcore.common.matchers.JsonMatcher.isEqualTo;
+import static com.testtask.bankingcore.common.matchers.JsonMatcher.isStrictlyEqualTo;
 import static com.testtask.bankingcore.common.matchers.StatusMatcher.isBadRequest;
 import static com.testtask.bankingcore.common.matchers.StatusMatcher.isOk;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.skyscreamer.jsonassert.JSONAssert.assertEquals;
 
 @IntegrationTest
 @RequiredArgsConstructor
@@ -63,7 +61,7 @@ class AccountTest {
             .statusCode(isOk())
             .contentType(ContentType.JSON)
             .body("accountId", notNullValue())
-            .body(isJsonEqualTo(expected));
+            .body(isEqualTo(expected));
     }
 
     @Test
@@ -92,14 +90,14 @@ class AccountTest {
             .assertThat()
             .statusCode(isOk())
             .contentType(ContentType.JSON)
-            .body(isJsonStrictlyEqualTo(expected));
+            .body(isStrictlyEqualTo(expected));
     }
 
     @Nested
     class RabbitMq {
 
         @Test
-        void happy_path_messages_received() throws InterruptedException, JSONException {
+        void happy_path_messages_received() throws InterruptedException {
             val accountQueue = rabbitHarness.listen(
                 accountProperties.creation().amqp().exchange(),
                 accountProperties.creation().amqp().routingKey()
@@ -135,9 +133,9 @@ class AccountTest {
             String expectedCustomerCreationMessage = """
             {
                 customerId: %s,
-                name: "Test customer"
+                name: 'Test customer'
             }
-            """.formatted(accountId, customerId);
+            """.formatted(customerId);
 
             String expectedBalanceCreationMessage = """
             {
@@ -145,15 +143,15 @@ class AccountTest {
                 amount: 0.00,
                 currency: EUR
             }
-            """.formatted(accountId, customerId);
+            """.formatted(accountId);
 
             val accountCreationMessage = accountQueue.await().json();
             val customerCreationMessage = customerQueue.await().json();
             val balanceCreationMessage = balanceQueue.await().json();
 
-            assertEquals(expectedAccountCreationMessage, accountCreationMessage, JSONCompareMode.STRICT);
-            assertEquals(expectedCustomerCreationMessage, customerCreationMessage, JSONCompareMode.STRICT);
-            assertEquals(expectedBalanceCreationMessage, balanceCreationMessage, JSONCompareMode.LENIENT);
+            assertThatJson(accountCreationMessage).isStrictlyEqualTo(expectedAccountCreationMessage);
+            assertThatJson(customerCreationMessage).isStrictlyEqualTo(expectedCustomerCreationMessage);
+            assertThatJson(balanceCreationMessage).isEqualTo(expectedBalanceCreationMessage);
         }
 
     }
@@ -192,7 +190,7 @@ class AccountTest {
                 .assertThat()
                 .statusCode(isBadRequest())
                 .contentType(ContentType.JSON)
-                .body(isJsonEqualTo(expected));
+                .body(isEqualTo(expected));
         }
     }
 
